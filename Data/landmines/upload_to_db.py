@@ -12,7 +12,7 @@ from geoalchemy2.types import Geometry as geoTypes
 
 # Append parent folder
 import sys
-sys.path.insert(0,'..')
+sys.path.insert(0,'../..')
 
 # Set up database connection engine
 from config import username, password, hostname, port, db_name
@@ -45,11 +45,11 @@ for d in ['incidents']:
 # create tables queries
 create_table_incidents = f"""
         CREATE TABLE incidents (
-            id INT GENERATED ALWAYS AS IDENTITY,
+            index INT GENERATED ALWAYS AS IDENTITY,
             datetime TIMESTAMP without time zone NOT NULL,
-            geometry geometry(POINT,4236) NOT NULL,
+            geometry geometry(POINT,4326) NOT NULL,
             info character varying(2048) NOT NULL,
-            PRIMARY KEY(id)
+            PRIMARY KEY(index)
         )
         """
 
@@ -59,7 +59,7 @@ execute_query(create_table_incidents)
 
 ################################################################################
 #                                                                              #
-#                              weather stations                                #
+#                              upload the data                                 #
 #                                                                              #
 ################################################################################
 
@@ -68,6 +68,9 @@ landmines_df = pd.read_csv('landmines.csv')
 
 # Redefine the types of the date and time columns
 landmines_df.loc[:, 'datetime'] = pd.to_datetime(landmines_df.datetime, format='%Y')
+
+# remove invalid rows
+landmines_df = landmines_df[landmines_df['datetime'].notna()]
 
 # Convert the data frame to a geo data frame
 landmines_gdf = gpd.GeoDataFrame(landmines_df, crs='EPSG:4326', geometry=gpd.points_from_xy(landmines_df.longitude, landmines_df.latitude))
@@ -82,7 +85,7 @@ landmines_gdf = landmines_gdf.reset_index(drop=True)
 landmines_gdf.to_postgis(
     con=engine,
     name='incidents',
-    if_exists='replace',
+    if_exists='append',
     dtype={
         'info': types.Text(),
         'datetime': types.DateTime(),

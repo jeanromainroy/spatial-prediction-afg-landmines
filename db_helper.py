@@ -66,11 +66,11 @@ def get_incidents(
     # SQL Query
     sql_query = f"""
         SELECT
-            id,
+            index,
             datetime,
-            ST_AsText(ST_Transform(geometry, {CRS})) as location,
+            ST_AsText(ST_Transform(geometry, {CRS})) as geometry,
             info,
-            Box2D(ST_Transform(ST_Buffer(geometry, {BBOX_BUFFER}), {CRS})) as bbox,
+            Box2D(ST_Transform(ST_Buffer(geometry, {BBOX_BUFFER}), {CRS})) as bbox
         FROM
             incidents
     """
@@ -82,8 +82,8 @@ def get_incidents(
     )
 
     # parse geometries
-    results['location'] = results['location'].apply(wkt_loads)
-    results['bbox'] = results['bbox'].apply(wkt_loads)
+    results['geometry'] = results['geometry'].apply(wkt_loads)
+    # results['bbox'] = results['bbox'].apply(wkt_loads)
 
     # convert to geodataframe
     results = gpd.GeoDataFrame(results)
