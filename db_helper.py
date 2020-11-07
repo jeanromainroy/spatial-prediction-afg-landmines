@@ -68,10 +68,9 @@ def get_incidents(
         SELECT
             id,
             datetime,
-            ST_AsText(ST_Transform(location, {CRS})) as location,
+            ST_AsText(ST_Transform(geometry, {CRS})) as location,
             info,
-            source,
-            Box2D(ST_Transform(ST_Buffer(location, {BBOX_BUFFER}), {CRS})) as bbox,
+            Box2D(ST_Transform(ST_Buffer(geometry, {BBOX_BUFFER}), {CRS})) as bbox,
         FROM
             incidents
     """
