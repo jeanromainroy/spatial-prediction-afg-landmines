@@ -68,8 +68,4 @@ Organize the files like this,
         lambda_function.py
         app/
             __init__.py
-            constants.py
-            geometry.py
-            processing.py
-            templates.py
-            write.py
+            other.py

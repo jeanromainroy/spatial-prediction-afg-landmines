@@ -53,7 +53,12 @@ To setup the PostGIS extension on AWS RDS, here is the [article](https://docs.aw
 
 ## Satellite Images
 
-We use,
+You will need to get an API key from Google Earth Engine. To do so run,
+
+    python3 gee_auth.py
+
+
+For the images we use,
 
     https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR
 
