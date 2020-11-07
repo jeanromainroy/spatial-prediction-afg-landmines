@@ -67,9 +67,18 @@ For the images we use,
 
 With our source data we consolidate a dataset with the following features,
 
-    - Distance to Water Channels
     - Distance to Persistent Forest
-    - ...
+    - Elevation
+    - Hill Slope
+    - Distance to Border
+    - Distance to Roads
+    - Distance to Railways
+    - Distance to Persistent Forest
+    - Distance to Water Channels
+    - Distance to Lost Forest
+    - Distance to Gained Forest
+    - Probability of Built-up
+    - Population Density
 
 
 ## Landmines Dataset
