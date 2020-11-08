@@ -63,16 +63,16 @@ def info(satdat):
     print(f'Min Bounding Box : {satdat.bounds}\n')
 
     # Get dimensions, in map units
-    width_in_projected_units = satdat.bounds.right - satdat.bounds.left
-    height_in_projected_units = satdat.bounds.top - satdat.bounds.bottom
+    width_in_projected_units = abs(satdat.bounds.right - satdat.bounds.left)
+    height_in_projected_units = abs(satdat.bounds.top - satdat.bounds.bottom)
     print(f"Width: {width_in_projected_units}, Height: {height_in_projected_units}\n")
 
     # Number of rows and columns.
     print(f"Rows: {satdat.height}, Columns: {satdat.width}\n")
 
     # This dataset's projection uses meters as distance units.  What are the dimensions of a single pixel in meters?
-    xres = (satdat.bounds.right - satdat.bounds.left) / satdat.width
-    yres = (satdat.bounds.top - satdat.bounds.bottom) / satdat.height
+    xres = width_in_projected_units / satdat.width
+    yres = height_in_projected_units / satdat.height
     print(f'Width of pixel (in m) : {xres}')
     print(f'Height of pixel (in m) : {yres}')
     print(f"Are the pixels square: {xres == yres}\n")

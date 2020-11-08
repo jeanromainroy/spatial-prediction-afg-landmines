@@ -21,10 +21,10 @@ def imshowoverlay(binaryMap,grayImg_hist, title=None,color=[200,20,50],makePlot=
         flaggedPixels.append((x[iPix],y[iPix]))
 
     # attenuate grayImg_hist to make it more readable
-    
+
     oldRange=[0,255]
     newRange=[0,120]
-    
+
     grayImg_hist=np.array(np.round(np.interp(grayImg_hist,oldRange,newRange)),np.uint8)
 
     imgComp = np.stack([grayImg_hist,grayImg_hist,grayImg_hist],axis=2)
@@ -45,7 +45,7 @@ with TiffFile(dataPath+"afghanistanProcessed.tif") as tif:
     # for field in tags.keys():
     #     if tags[field].name != "TileOffsets" and tags[field].name != "TileByteCounts":
     #         print(tags[field].name,": ",tags[field].value)
-        
+
     afghanMap=np.array(tif.asarray())
     globalMax=np.max(afghanMap)
     # print("max global:",globalMax)
