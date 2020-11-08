@@ -35,10 +35,14 @@ satdat = imagery_helper.load(src_path)
 crs = '4326'
 
 # Load the data
-df = db_helper.get_incidents(OFFSET=0, LIMIT=10000, CRS=crs)
+df = db_helper.get_incidents(OFFSET=0, LIMIT=10000, CRS=crs, CONTAINED=True)
 
 # Keep certain columns
-df = df.loc[:, ['geometry']]
+df = df.loc[:, ['geometry', 'bbox']]
+
+print(df.head(3))
+raise Exception('stop')
+
 
 
 ################################################################################

@@ -56,7 +56,6 @@ def get_incidents_count():
 def get_incidents(
         OFFSET=0,
         LIMIT=1000,
-        BBOX_BUFFER=200,
         CRS='4326',
         CONTAINED=False
     ):
@@ -74,8 +73,7 @@ def get_incidents(
             index,
             datetime,
             ST_AsText(ST_Transform(geometry, {CRS})) as geometry,
-            info,
-            Box2D(ST_Transform(ST_Buffer(geometry, {BBOX_BUFFER}), {CRS})) as bbox
+            info
         FROM
             incidents
         {where_condition}
@@ -89,7 +87,6 @@ def get_incidents(
 
     # parse geometries
     results['geometry'] = results['geometry'].apply(wkt_loads)
-    # results['bbox'] = results['bbox'].apply(wkt_loads)
 
     # convert to geodataframe
     results = gpd.GeoDataFrame(results)
