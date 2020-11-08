@@ -16,6 +16,11 @@ import db_helper
 # Find the current working directory
 path = os.getcwd()
 
+# Grab path to data folder
+if os.path.isdir(os.path.join(path, 'Data')) == False:
+    raise Exception('Data directory does not exist, run retrieve script')
+data_dir_path = os.path.join(path, 'Data')
+
 # Grab path to figures folder
 if os.path.isdir(os.path.join(path, 'Figures')) == False:
     raise Exception('Figures directory does not exist, run retrieve script')
@@ -28,9 +33,29 @@ src_path = os.path.join(figures_dir_path, 'kandahar-compressed.tif')
 satdat = imagery_helper.load(src_path)
 
 # Grab path to cropped folder
-cropped_dir = os.path.join(path, 'Figures', 'cropped')
-if os.path.isdir(cropped_dir) == False:
-    os.mkdir(cropped_dir)
+training_data_dir = os.path.join(data_dir_path, 'training_data')
+if os.path.isdir(training_data_dir) == False:
+    os.mkdir(training_data_dir)
+
+validation_data_dir = os.path.join(data_dir_path, 'validation_data')
+if os.path.isdir(validation_data_dir) == False:
+    os.mkdir(validation_data_dir)
+
+training_incident_dir = os.path.join(training_data_dir, 'incident')
+if os.path.isdir(training_incident_dir) == False:
+    os.mkdir(training_incident_dir)
+
+training_no_incident_dir = os.path.join(training_data_dir, 'no_incident')
+if os.path.isdir(training_no_incident_dir) == False:
+    os.mkdir(training_no_incident_dir)
+
+validation_incident_dir = os.path.join(validation_data_dir, 'incident')
+if os.path.isdir(validation_incident_dir) == False:
+    os.mkdir(validation_incident_dir)
+
+validation_no_incident_dir = os.path.join(validation_data_dir, 'no_incident')
+if os.path.isdir(validation_no_incident_dir) == False:
+    os.mkdir(validation_no_incident_dir)
 
 
 ################################################################################
@@ -129,9 +154,6 @@ incidents_count = 0
 for x_pos in list(range(0, width, d_x)):
     for y_pos in list(range(0, height, d_y)):
 
-        # outpath
-        out_path = os.path.join(cropped_dir, f'{im_index}.png')
-
         # increment ind
         im_index += 1
 
@@ -151,37 +173,40 @@ for x_pos in list(range(0, width, d_x)):
         true_lat_min = np.min([lat_min, lat_max])
         true_lat_max = np.max([lat_min, lat_max])
 
-        # check if contains incident
-        contains = contains_incident(true_lng_min, true_lat_min, true_lng_max, true_lat_max)
-        if(contains):
-            incidents_count += 1
-
         # crop image
         cropped_img = img_src[y_min:y_max, x_min:x_max, :]
 
-        # append to df
-        imagery_df.append({
-            'filename': os.path.basename(out_path),
-            'incident': contains,
-            'bbox': {
-                'lng_min': lng_min,
-                'lat_min': lat_min,
-                'lng_max': lng_max,
-                'lat_max': lat_max
-            }
-        })
+        # check if contains incident
+        contains = contains_incident(true_lng_min, true_lat_min, true_lng_max, true_lat_max)
 
-        # save
-        try:
-            im = Image.fromarray(cropped_img)
-            im.save(out_path)
+        # if contains
+        if(contains):
 
-        except:
-            pass
+            # increment
+            incidents_count += 1
 
-# save df
-with open(os.path.join(figures_dir_path, 'training_data.json'), 'w') as outfile:
-    json.dump(imagery_df, outfile)
+            # outpath
+            out_path = os.path.join(training_incident_dir, f'{im_index}.png')
+
+            # save
+            try:
+                im = Image.fromarray(cropped_img)
+                im.save(out_path)
+
+            except:
+                pass
+        else:
+
+            # outpath
+            out_path = os.path.join(training_no_incident_dir, f'{im_index}.png')
+
+            # save
+            try:
+                im = Image.fromarray(cropped_img)
+                im.save(out_path)
+
+            except:
+                pass
 
 
 print(f'Number of images with incidents : {incidents_count}')

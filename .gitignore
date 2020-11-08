@@ -3,3 +3,7 @@ Figures/test-img-processed.tif
 Figures/opencv_processed.tif
 Figures/kandahar-compressed-with-incidents.tif
 __pycache__/
+Data/training_data/incident/
+Data/training_data/no_incident/
+Data/validation_data/incident/
+Data/validation_data/no_incident/

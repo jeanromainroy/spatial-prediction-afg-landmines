@@ -13,65 +13,46 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Deep Learning
-from keras.models import Sequential, load_model
-from keras.layers import Dense, Dropout, BatchNormalization
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
 
+import tensorflow as tf
+import numpy as np
+from itertools import cycle
+
+from sklearn import svm, datasets
+from sklearn.metrics import roc_curve, auc
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import label_binarize
+from sklearn.multiclass import OneVsRestClassifier
+from scipy import interp
+from sklearn.metrics import roc_auc_score
+
+# resize our images to this dims
+RESIZE_W = 32
+RESIZE_H = 32
 
 # Find the current working directory
 path = os.getcwd()
-
-# Grab path to data folder
-if os.path.isdir(os.path.join(path, 'Data')) == False:
-    raise Exception('Data directory does not exist, run retrieve script')
-data_dir_path = os.path.join(path, 'Data')
 
 # Grab path to figures folder
 if os.path.isdir(os.path.join(path, 'Figures')) == False:
     raise Exception('Figures directory does not exist, run retrieve script')
 figures_dir_path = os.path.join(path, 'Figures')
 
-
-################################################################################
-#                                                                              #
-#                        Loading the data from the DB                          #
-#                                                                              #
-################################################################################
-
-
-# Load the data
-df = pd.read_csv(os.path.join(data_dir_path, 'training_data.csv'))
-
-# remove nan
-df = df.dropna()
-
-# balance the classes
-g = df.groupby('incident')
-df = g.apply(lambda x: x.sample(g.size().min()).reset_index(drop=True))
-
-# print classes
-print(df['incident'].value_counts())
-
-# Keep certain columns
-X = df.loc[:, df.columns[~df.columns.isin(['index', 'incident', 'datetime', 'geometry'])]]
-Y = df.loc[:, 'incident']
-
-# Split the data into training, development and test sets
-train_X, test_X, train_Y, test_Y = train_test_split(X, Y, test_size=0.1, shuffle=True, stratify=Y)
-train_X, dev_X, train_Y, dev_Y = train_test_split(train_X, train_Y, test_size=0.1, shuffle=True, stratify=train_Y)
-
-# Normalize the data
-scaler = StandardScaler()
-train_XN = scaler.fit_transform(train_X)
-dev_XN = scaler.transform(dev_X)
-test_XN = scaler.transform(test_X)
-
-# print features
-for i, feature in enumerate(train_X.columns):
-    print(f'Feature #{i} : {feature}')
+# path to dirs
+train_dir = os.path.join(path, 'Data', 'training_data')
+validation_dir = os.path.join(path, 'Data', 'validation_data')
+train_incident_dir = os.path.join(train_dir, 'incident')
+train_no_incident_dir = os.path.join(train_dir, 'no_incident')
+validation_incident_dir = os.path.join(validation_dir, 'incident')
+validation_no_incident_dir = os.path.join(validation_dir, 'no_incident')
+print('total training incidents images:', len(os.listdir(train_incident_dir)))
+print('total training no incidents images:', len(os.listdir(train_no_incident_dir)))
+print('total training incidents images:', len(os.listdir(validation_incident_dir)))
+print('total training no incidents images:', len(os.listdir(validation_no_incident_dir)))
 
 
 ################################################################################
@@ -80,66 +61,68 @@ for i, feature in enumerate(train_X.columns):
 #                                                                              #
 ################################################################################
 
-# Define the model instance
-model = Sequential()
-model.add(Dense(256, input_dim=train_XN.shape[1], activation='relu'))
-model.add(BatchNormalization())
-model.add(Dropout(0.5))
-model.add(Dense(256, activation='relu'))
-model.add(BatchNormalization())
-model.add(Dropout(0.4))
-model.add(Dense(128, activation='relu'))
-model.add(BatchNormalization())
-model.add(Dropout(0.3))
-model.add(Dense(128, activation='relu'))
-model.add(BatchNormalization())
-model.add(Dropout(0.2))
-model.add(Dense(64, activation='relu'))
-model.add(BatchNormalization())
-model.add(Dropout(0.1))
-model.add(Dense(32, activation='relu'))
-model.add(BatchNormalization())
-model.add(Dense(1, activation='sigmoid'))
+train_datagen = ImageDataGenerator()
+validation_datagen = ImageDataGenerator()
+
+# Flow training images in batches of 120 using train_datagen generator
+train_generator = train_datagen.flow_from_directory(
+        train_dir,  # This is the source directory for training images
+        classes = ['incident', 'no_incident'],
+        target_size=(RESIZE_W, RESIZE_H),  # All images will be resized to 32x32
+        batch_size=16,
+        class_mode='binary' # Use binary labels
+    )
+
+
+# Flow validation images in batches of 19 using valid_datagen generator
+validation_generator = validation_datagen.flow_from_directory(
+        validation_dir,  # This is the source directory for training images
+        classes = ['incident', 'no_incident'],
+        target_size=(RESIZE_W, RESIZE_H),  # All images will be resized to 32x32
+        batch_size=1,
+        class_mode='binary', # Use binary labels
+        shuffle=False
+    )
+
+model = tf.keras.models.Sequential([tf.keras.layers.Flatten(input_shape = (RESIZE_W,RESIZE_H,3)),
+                                    tf.keras.layers.Dense(128, activation=tf.nn.relu),
+                                    tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)])
+
 model.summary()
 
-# Compile the model
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+model.compile(optimizer = tf.optimizers.Adam(),
+              loss = 'binary_crossentropy',
+              metrics=['accuracy'])
 
-# Fit the model
-history = model.fit(x=train_XN, y=train_Y, validation_data=(dev_XN, dev_Y), epochs=4, batch_size=128)
+history = model.fit(train_generator,
+      epochs=10,
+      verbose=1,
+      validation_data = validation_generator)
 
 # Save the model
 model.save(os.path.join(path, 'model.h5'))
 
 # Evaluate the model
-evaluation = model.evaluate(x=test_XN, y=test_Y)
+evaluation = model.evaluate(validation_generator)
 
-# Create the confusion matrix
-prediction = (model.predict(test_XN) > 0.5).astype("int32")
-confusion = confusion_matrix(test_Y, prediction, labels=[0,1], normalize='all')
-tn = np.round(confusion[0][0], 4)
-fn = np.round(confusion[1][0], 4)
-tp = np.round(confusion[1][1], 4)
-fp = np.round(confusion[0][1], 4)
-recall = np.round(tp/(tp+fn), 4)
-print(f'True Negative : {tn}')
-print(f'False Negative : {fn}')
-print(f'True Positives : {tp}')
-print(f'False Positives : {fp}')
-print(f'Recall : {recall}')
+STEP_SIZE_TEST=validation_generator.n//validation_generator.batch_size
+validation_generator.reset()
+preds = model.predict(validation_generator,verbose=1)
 
-# summarize history for accuracy
-plt.plot(history.history['accuracy'])
-plt.title('model accuracy')
-plt.ylabel('accuracy')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
-plt.savefig(os.path.join(figures_dir_path, 'accuracy.png'))
+# roc
+fpr, tpr, _ = roc_curve(validation_generator.classes, preds)
+roc_auc = auc(fpr, tpr)
 
-# summarize history for loss
-plt.plot(history.history['loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
-plt.savefig(os.path.join(figures_dir_path, 'loss.png'))
+plt.figure()
+lw = 2
+plt.plot(fpr, tpr, color='darkorange',
+         lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)
+plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic')
+plt.legend(loc="lower right")
+plt.savefig(os.path.join(figures_dir_path, 'roc.png'))
+
