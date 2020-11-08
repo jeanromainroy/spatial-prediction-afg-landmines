@@ -12,10 +12,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Logging
-import logging
-logging.basicConfig(level=logging.INFO)
-
 # Deep Learning
 from keras.models import Sequential, load_model
 from keras.layers import Dense, Dropout, BatchNormalization
