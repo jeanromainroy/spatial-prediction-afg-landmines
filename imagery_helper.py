@@ -62,7 +62,7 @@ def info(satdat):
     # Minimum bounding box in projected units
     print(f'Min Bounding Box : {satdat.bounds}\n')
 
-    # Get dimensions, in map units (using the example GeoTIFF, that's meters)
+    # Get dimensions, in map units
     width_in_projected_units = satdat.bounds.right - satdat.bounds.left
     height_in_projected_units = satdat.bounds.top - satdat.bounds.bottom
     print(f"Width: {width_in_projected_units}, Height: {height_in_projected_units}\n")
@@ -151,8 +151,9 @@ def scale_pixels(src_path, out_path, min=0, max=10000):
     bands = satdat.read()
 
     def scale(band):
-        band = np.round((band / 10000.0)*255.0)     # scale to 0 - 255
-        band[band > 255] = 255                      # if above set to max
+        if(np.max(band) > 255):
+            band = np.round((band / 10000.0)*255.0)     # scale to 0 - 255
+            band[band > 255] = 255                      # if above set to max
         return band
 
     # scale each band
@@ -165,7 +166,7 @@ def scale_pixels(src_path, out_path, min=0, max=10000):
     # stack
     scaled_img = np.dstack(bands).astype(np.uint8)
 
-    # move axis with 4 entries to beginning and remove extra dimension
+    # move axis with entries to beginning
     scaled_img = np.moveaxis(scaled_img,-1,0)
 
     # get the metadata of original GeoTIFF:
