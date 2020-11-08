@@ -2,8 +2,6 @@
 
 ![Landmine Incidents Visualization of Kandahar, Afghanistan](./Figures/kandahar-compressed-with-incidents.png)
 
-Given an image,
-
 
 ## Environment
 
@@ -106,5 +104,3 @@ We obtained our dataset of landmines event from,
 * **Jean-Romain Roy** - [jeanromainroy](https://github.com/jeanromainroy)
 
 * **Facundo Sosa-Rey** - [FacundoLM2](https://github.com/FacundoLM2)
-
-* **Nicolas Desjardins-Lecavalier** - [Nickydoo](https://github.com/Nickydoo)
