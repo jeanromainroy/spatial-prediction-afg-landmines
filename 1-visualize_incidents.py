@@ -8,6 +8,14 @@ import matplotlib.pyplot as plt
 # Lib to import our accidents data
 import db_helper
 
+# Find the current working directory
+path = os.getcwd()
+
+# Grab path to data folder
+if os.path.isdir(os.path.join(path, 'Data')) == False:
+    raise Exception('Data directory does not exist, run retrieve script')
+data_dir_path = os.path.join(path, 'Data')
+
 
 def draw_as_pdf(geometries, out_path):
     """
@@ -38,7 +46,10 @@ bbox_crs = '4326'
 df = db_helper.get_incidents(OFFSET=0, LIMIT=10000, CRS=bbox_crs)
 
 # Keep certain columns
-df = df.loc[:, ['index',  'datetime', 'geometry']]
+df = df.loc[:, ['index', 'geometry']]
+
+# outpath
+out_path = os.path.join(data_dir_path, 'incidents.pdf')
 
 # write
-draw_as_pdf(df, 'incidents.pdf')
+draw_as_pdf(df, out_path)

@@ -26,7 +26,7 @@ satdat = imagery_helper.load(src_path)
 imagery_helper.info(satdat)
 
 # scale to uint8
-imagery_helper.scale_pixels(src_path, out_path, min=0, max=10000)
+imagery_helper.to_uint8(src_path, out_path, min=0, max=10000)
 
 # compress
 imagery_helper.compress(out_path, out_path, compression_type='JPEG')

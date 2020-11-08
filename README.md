@@ -1,5 +1,7 @@
 # Safe Atlas : Landmines Identification using satellite imagery
 
+![Landmine Incidents Visualization of Kandahar, Afghanistan](./Data/kandahar-compressed-with-incidents.png)
+
 Given an image,
 
 

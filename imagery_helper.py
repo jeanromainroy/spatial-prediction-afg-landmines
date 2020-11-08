@@ -142,7 +142,10 @@ def compress(src_path, out_path, compression_type='JPEG'):
     print(f'(Initial size, Final Size, Ratio) : ({sz(init_size)}, {sz(final_size)}, {ratio}%)\n')
 
 
-def scale_pixels(src_path, out_path, min=0, max=10000):
+def to_uint8(src_path, out_path, min=0, max=10000):
+    """
+        Takes an image and converts the data type to uint8 by scaling down the pixel values
+    """
 
     # load file
     satdat = load(src_path)
@@ -198,39 +201,74 @@ def bbox_to_corners(bbox_geometry):
     geometry = str(bbox_geometry)
 
     # parse
-    geometry = geometry.replace('BOX(', '')
+    geometry = geometry.split('(')[-1]
     geometry = geometry.replace(')', '')
     geometry = geometry.strip()
 
     # split points
     points = geometry.split(',')
     if(len(points) != 2):
-        raise Exception('BBox provided as input is invalid')
+        raise Exception('Input bounding box is invalid')
 
-    # go through
-    clean = []
-    for pt in points:
+    # go through points
+    clean_pts = []
+    for point in points:
 
-        # split
-        pt = pt.strip()
-        pts = pt.split(' ')
+        # split lat/lng
+        point = point.strip()
+        lng_lat = point.split(' ')
+        if(len(lng_lat) != 2):
+            raise Exception('Input point is invalid')
 
-        if(len(pts) == 2):
-            clean.append([float(pts[0]), float(pts[1])])
-        else:
-            print(f'ERROR: Not a tuple ({pt})')
+        # parse
+        lng, lat = lng_lat
+        lng = lng.strip()
+        lat = lat.strip()
+        lat = float(lat)
+        lng = float(lng)
+
+        # append
+        clean_pts.append([lng, lat])
 
     # check
-    if(len(clean) != 2):
+    if(len(clean_pts) != 2):
         raise Exception('Invalid bbox after processing')
 
     # grab corners
-    MIN_X = clean[0][0]
-    MIN_Y = clean[0][1]
-    MAX_X = clean[1][0]
-    MAX_Y = clean[1][1]
+    MIN_X = clean_pts[0][0]
+    MIN_Y = clean_pts[0][1]
+    MAX_X = clean_pts[1][0]
+    MAX_Y = clean_pts[1][1]
 
     return [MIN_X, MIN_Y, MAX_X, MAX_Y]
+
+
+def point_to_lng_lat(point_geometry):
+    """
+        Takes a postgis Point as input and returns the latitude and longitude in the [lng, lat] order
+    """
+
+    # cast as str
+    point = str(point_geometry)
+
+    # parse
+    point = point.split('(')[-1]
+    point = point.replace(')', '')
+
+    # split lat/lng
+    point = point.strip()
+    lng_lat = point.split(' ')
+    if(len(lng_lat) != 2):
+        raise Exception('Input point is invalid')
+
+    # parse
+    lng, lat = lng_lat
+    lng = lng.strip()
+    lat = lat.strip()
+    lat = float(lat)
+    lng = float(lng)
+
+    return [lng, lat]
 
 
 def bbox_to_GeoJSON(bbox_geometry, bbox_crs, out_path=None):
@@ -242,9 +280,8 @@ def bbox_to_GeoJSON(bbox_geometry, bbox_crs, out_path=None):
     corners = bbox_to_corners(bbox_geometry)
 
     # convert bbox to json
-    aoi = {
+    geojson = {
         "type": "FeatureCollection",
-        "name": "aoi",
         "crs": {
             "type": "name",
             "properties": {
@@ -254,7 +291,6 @@ def bbox_to_GeoJSON(bbox_geometry, bbox_crs, out_path=None):
         "features": [
             {
                 "type": "Feature",
-                "properties": { "id": 1 },
                 "geometry": {
                     "type": "Polygon",
                     "coordinates": [
@@ -274,9 +310,75 @@ def bbox_to_GeoJSON(bbox_geometry, bbox_crs, out_path=None):
     # save geojson json
     if(out_path is not None):
         with open(out_path, 'w') as outfile:
-            json.dump(aoi, outfile)
+            json.dump(geojson, outfile)
 
-    return aoi
+    return geojson
+
+
+def point_to_GeoJSON(point_geometry, point_crs, out_path=None):
+    """
+        Takes a postgis Point as input and returns the GeoJSON
+    """
+
+    # convert postgis bbox to corners array
+    lng, lat = point_to_lng_lat(point_geometry)
+
+    # convert point to json
+    geojson = {
+        "type": "FeatureCollection",
+        "crs": {
+            "type": "name",
+            "properties": {
+                "name": f"urn:ogc:def:crs:EPSG::{point_crs}"
+            }
+        },
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        [lng, lat]
+                    ]
+                }
+            }
+        ]
+    }
+
+    # save geojson json
+    if(out_path is not None):
+        with open(out_path, 'w') as outfile:
+            json.dump(geojson, outfile)
+
+    return geojson
+
+
+def convert_lng_lat_to_pixel(satdat, lng, lat):
+    """
+        Maps a (lng, lat) point to a pixel (x, y) point
+    """
+
+    # check if inside
+    if(lng > satdat.bounds.right or lng < satdat.bounds.left):
+        raise Exception('Invalid lat/lng')
+    if(lat > satdat.bounds.top or lat < satdat.bounds.bottom):
+        raise Exception('Invalid lat/lng')
+
+    # Get dimensions, in map units
+    width_in_projected_units = np.abs(satdat.bounds.right - satdat.bounds.left)
+    height_in_projected_units = np.abs(satdat.bounds.top - satdat.bounds.bottom)
+
+    # compute
+    xres = satdat.width/float(width_in_projected_units)
+    yres = satdat.height/float(height_in_projected_units)
+    xpos = (satdat.bounds.right-lng)*xres
+    ypos = (satdat.bounds.top-lat)*yres
+
+    # round
+    xpos = int(xpos)
+    ypos = int(ypos)
+
+    return xpos, ypos
 
 
 def crop(src_path, out_path, bbox_geometry, bbox_crs):
@@ -284,11 +386,8 @@ def crop(src_path, out_path, bbox_geometry, bbox_crs):
         Crop imagery using a Postgis Box2d geometry
     """
 
-    # convert bbox to geojson
-    geojson = bbox_to_GeoJSON(bbox_geometry, bbox_crs)
+    # validate area of interest
 
-    # grab geometry
-    aoi = [feature['geometry'] for feature in geojson['features']]
 
     # load imagery
     satdata = rasterio.open(src_path)
