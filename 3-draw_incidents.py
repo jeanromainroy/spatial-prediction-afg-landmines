@@ -21,7 +21,8 @@ if os.path.isdir(os.path.join(path, 'Data')) == False:
 data_dir_path = os.path.join(path, 'Data')
 
 # Path to our imagery
-src_path = "/home/jean-romain/Geospatial/30cm_imagery/afghanistan-compressed.tif"
+src_path = os.path.join(data_dir_path, 'kandahar-compressed.tif')
+out_path = os.path.join(data_dir_path, 'kandahar-compressed-with-incidents.tif')
 
 # load
 satdat = imagery_helper.load(src_path)
@@ -164,6 +165,6 @@ kwargs.update(dtype=m_dtype)
 kwargs.update(count=count)
 
 # Finally, use rasterio to write new raster file 'data/ndvi.tif':
-with rasterio.open('incidents.tif', 'w', **kwargs) as dst:
+with rasterio.open(out_path, 'w', **kwargs) as dst:
         dst.write(scaled_img)
 
