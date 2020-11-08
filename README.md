@@ -54,8 +54,9 @@ To setup the PostGIS extension on AWS RDS, here is the [article](https://docs.aw
 
 **imagery**
 
-    CREATE TABLE images (
+    CREATE TABLE imagery (
         index INT GENERATED ALWAYS AS IDENTITY,
+        filename character varying(2048) NOT NULL,
         datetime TIMESTAMP without time zone NOT NULL,
         geometry geometry(POLYGON,4326) NOT NULL,
         info JSONB NOT NULL,

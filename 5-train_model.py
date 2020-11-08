@@ -47,7 +47,7 @@ figures_dir_path = os.path.join(path, 'Figures')
 
 
 # Load the data
-df = pd.read_csv(os.path.join(data_dir_path, 'data.csv'))
+df = pd.read_csv(os.path.join(data_dir_path, 'training_data.csv'))
 
 # remove nan
 df = df.dropna()
