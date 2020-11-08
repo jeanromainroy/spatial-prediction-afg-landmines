@@ -44,12 +44,22 @@ To setup the PostGIS extension on AWS RDS, here is the [article](https://docs.aw
 **incidents**
 
     CREATE TABLE incidents (
-        id INT GENERATED ALWAYS AS IDENTITY,
+        index INT GENERATED ALWAYS AS IDENTITY,
         datetime TIMESTAMP without time zone NOT NULL,
-        location geometry(POINT,4236) NOT NULL,
+        geometry geometry(POINT,4326) NOT NULL,
         info character varying(2048) NOT NULL,
-        source character varying(2048) NOT NULL,
-        PRIMARY KEY(id)
+        PRIMARY KEY(index)
+    )
+
+
+**imagery**
+
+    CREATE TABLE images (
+        index INT GENERATED ALWAYS AS IDENTITY,
+        datetime TIMESTAMP without time zone NOT NULL,
+        geometry geometry(POLYGON,4326) NOT NULL,
+        info JSONB NOT NULL,
+        PRIMARY KEY(index)
     )
 
 

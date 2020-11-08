@@ -11,10 +11,10 @@ import db_helper
 # Find the current working directory
 path = os.getcwd()
 
-# Grab path to data folder
-if os.path.isdir(os.path.join(path, 'Data')) == False:
-    raise Exception('Data directory does not exist, run retrieve script')
-data_dir_path = os.path.join(path, 'Data')
+# Grab path to figures folder
+if os.path.isdir(os.path.join(path, 'Figures')) == False:
+    raise Exception('Figures directory does not exist, run retrieve script')
+figures_dir_path = os.path.join(path, 'Figures')
 
 
 def draw_as_pdf(geometries, out_path):
@@ -49,7 +49,7 @@ df = db_helper.get_incidents(OFFSET=0, LIMIT=10000, CRS=bbox_crs)
 df = df.loc[:, ['index', 'geometry']]
 
 # outpath
-out_path = os.path.join(data_dir_path, 'incidents.pdf')
+out_path = os.path.join(figures_dir_path, 'incidents.pdf')
 
 # write
 draw_as_pdf(df, out_path)

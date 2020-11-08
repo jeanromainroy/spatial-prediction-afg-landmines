@@ -11,14 +11,16 @@ import imagery_helper
 # Find the current working directory
 path = os.getcwd()
 
-# Grab path to data folder
-if os.path.isdir(os.path.join(path, 'Data')) == False:
-    raise Exception('Data directory does not exist, run retrieve script')
-data_dir_path = os.path.join(path, 'Data')
-
+# Grab path to figures folder
+if os.path.isdir(os.path.join(path, 'Figures')) == False:
+    raise Exception('Figures directory does not exist, run retrieve script')
+figures_dir_path = os.path.join(path, 'Figures')
 
 # Path to our imagery
-src_path = os.path.join(data_dir_path, 'kandahar-compressed.tif')
+src_path = os.path.join(figures_dir_path, 'kandahar-compressed.tif')
+
+# outpath
+out_path = os.path.join(figures_dir_path, 'opencv-processed.tif')
 
 # load image with opencv
 img = cv.imread(src_path)
@@ -39,9 +41,6 @@ resized_img = opencv_helper.resize(edges, int(width/resize_ratio), int(height/re
 
 # show
 opencv_helper.show(resized_img)
-
-# outpath
-out_path = os.path.join(data_dir_path, 'opencv_processed.tif')
 
 # write
 cv.imwrite(out_path, resized_img)

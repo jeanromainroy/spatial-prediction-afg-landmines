@@ -7,12 +7,6 @@ import imagery_helper
 # Find the current working directory
 path = os.getcwd()
 
-# Grab path to data folder
-if os.path.isdir(os.path.join(path, 'Data')) == False:
-    raise Exception('Data directory does not exist, run retrieve script')
-data_dir_path = os.path.join(path, 'Data')
-
-
 # Path to our imagery
 src_path = "/home/facu/Desktop/HackathonMcGill2020/afghanistan.tif"
 

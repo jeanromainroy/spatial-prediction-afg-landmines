@@ -7,17 +7,17 @@ import imagery_helper
 # Find the current working directory
 path = os.getcwd()
 
-# Grab path to data folder
-if os.path.isdir(os.path.join(path, 'Data')) == False:
-    raise Exception('Data directory does not exist, run retrieve script')
-data_dir_path = os.path.join(path, 'Data')
+# Grab path to figures folder
+if os.path.isdir(os.path.join(path, 'Figures')) == False:
+    raise Exception('Figures directory does not exist, run retrieve script')
+figures_dir_path = os.path.join(path, 'Figures')
 
 # Path to our imagery
-src_path = os.path.join(data_dir_path, "test-img-full-resolution.tif")
+src_path = os.path.join(figures_dir_path, "test-img-full-resolution.tif")
 
 # path to output image
-out_path_1 = os.path.join(data_dir_path, 'test-img-processed.tif')
-out_path_2 = os.path.join(data_dir_path, 'test-img-compressed.tif')
+out_path_1 = os.path.join(figures_dir_path, 'test-img-processed.tif')
+out_path_2 = os.path.join(figures_dir_path, 'test-img-compressed.tif')
 
 # load
 satdat = imagery_helper.load(src_path)

@@ -1,4 +1,5 @@
-Data/test-img-compressed.tif
-Data/test-img-processed.tif
-Data/opencv_processed.tif
-Data/kandahar-compressed-with-incidents.tif
+Figures/test-img-compressed.tif
+Figures/test-img-processed.tif
+Figures/opencv_processed.tif
+Figures/kandahar-compressed-with-incidents.tif
+__pycache__/

@@ -33,6 +33,11 @@ if os.path.isdir(os.path.join(path, 'Data')) == False:
     raise Exception('Data directory does not exist, run retrieve script')
 data_dir_path = os.path.join(path, 'Data')
 
+# Grab path to figures folder
+if os.path.isdir(os.path.join(path, 'Figures')) == False:
+    raise Exception('Figures directory does not exist, run retrieve script')
+figures_dir_path = os.path.join(path, 'Figures')
+
 
 ################################################################################
 #                                                                              #
@@ -133,7 +138,7 @@ plt.title('model accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
-plt.savefig(os.path.join(data_dir_path, 'accuracy.png'))
+plt.savefig(os.path.join(figures_dir_path, 'accuracy.png'))
 
 # summarize history for loss
 plt.plot(history.history['loss'])
@@ -141,4 +146,4 @@ plt.title('model loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
-plt.savefig(os.path.join(data_dir_path, 'loss.png'))
+plt.savefig(os.path.join(figures_dir_path, 'loss.png'))
