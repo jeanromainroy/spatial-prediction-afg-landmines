@@ -1,0 +1,3 @@
+incident,index,datetime,geometry,distance_to_water,
+0,12,'2004-01-01',POINT(61.1231 32.21093),32.12
+1,13,'2005-01-01',POINT(62.2331 43.563),65.2
