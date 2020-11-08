@@ -47,30 +47,6 @@ df = df.loc[:, ['geometry']]
 #                                                                              #
 ################################################################################
 
-def convert_latlng_to_pixel(lat, lng):
-
-    # check if inside
-    if(lng > satdat.bounds.right or lng < satdat.bounds.left):
-        raise Exception('Invalid lat/lng')
-    if(lat > satdat.bounds.top or lat < satdat.bounds.bottom):
-        raise Exception('Invalid lat/lng')
-
-    # Get dimensions, in map units
-    width_in_projected_units = np.abs(satdat.bounds.right - satdat.bounds.left)
-    height_in_projected_units = np.abs(satdat.bounds.top - satdat.bounds.bottom)
-
-    # compute
-    xres = satdat.width/float(width_in_projected_units)
-    yres = satdat.height/float(height_in_projected_units)
-    xpos = (satdat.bounds.right-lng)*xres
-    ypos = (satdat.bounds.top-lat)*yres
-
-    # round
-    xpos = int(xpos)
-    ypos = int(ypos)
-
-    return xpos, ypos
-
 # count number of incidents inside
 count = 0
 

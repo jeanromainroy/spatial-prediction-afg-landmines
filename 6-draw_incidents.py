@@ -57,7 +57,7 @@ radius = 10
 bbox_crs = '4326'
 
 # Load the data
-df = db_helper.get_incidents(OFFSET=0, LIMIT=10000, CRS=bbox_crs)
+df = db_helper.get_incidents(OFFSET=0, LIMIT=10000, CRS=bbox_crs, CONTAINED=True)
 
 # Keep certain columns
 df = df.loc[:, ['geometry']]
@@ -68,6 +68,10 @@ df = df.loc[:, ['geometry']]
 #                     Go through incidents and draw image                      #
 #                                                                              #
 ################################################################################
+
+# dimension of imagery
+width = satdat.width
+height = satdat.height
 
 # count number of incidents inside
 count = 0
@@ -95,6 +99,10 @@ for index, row in df.iterrows():
             y_min = 0
         if(x_min < 0):
             x_min = 0
+        if(x_max >= width):
+            x_max = width - 1
+        if(y_max >= height):
+            y_max = height - 1
 
         # set to white
         for i in range(y_min, y_max):
@@ -106,6 +114,7 @@ for index, row in df.iterrows():
         count += 1
 
     except:
+        print(f'Error - {index}')
         pass
 
 
@@ -141,9 +150,6 @@ with rasterio.open(process_path, 'w', **kwargs) as dst:
 
 # load
 satdat = imagery_helper.load(process_path)
-
-# display info
-imagery_helper.info(satdat)
 
 # scale to uint8
 imagery_helper.to_uint8(process_path, process_path, min=0, max=10000)

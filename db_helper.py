@@ -57,11 +57,16 @@ def get_incidents(
         OFFSET=0,
         LIMIT=1000,
         BBOX_BUFFER=200,
-        CRS='4326'
+        CRS='4326',
+        CONTAINED=False
     ):
     """
         Returns the incidents. Geometries are returned as text
     """
+
+    where_condition = ''
+    if(CONTAINED):
+        where_condition = 'WHERE ST_Contains((SELECT geometry FROM imagery LIMIT 1), incidents.geometry)'
 
     # SQL Query
     sql_query = f"""
@@ -73,6 +78,7 @@ def get_incidents(
             Box2D(ST_Transform(ST_Buffer(geometry, {BBOX_BUFFER}), {CRS})) as bbox
         FROM
             incidents
+        {where_condition}
     """
 
     # run
