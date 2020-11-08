@@ -4,6 +4,7 @@ import json
 from matplotlib import pyplot as plt
 from humanize import naturalsize as sz
 
+import math
 import numpy as np
 
 # import rasterio's tools
@@ -22,63 +23,118 @@ def load(src_path):
     """
         Loads imagery as a rasterio object
     """
-    satdat = rasterio.open(src_path)
-    return satdat
+    satdata = rasterio.open(src_path)
+    return satdata
 
 
-def show(satdat):
+def show(satdata):
     """
-        Display satdat as matplotlib figure
+        Display satdata as matplotlib figure
     """
 
     # check input
-    if(type(satdat) != rasterio.io.DatasetReader):
+    if(type(satdata) != rasterio.io.DatasetReader):
         raise Exception('Wrong Format')
 
-    rasterio_show(satdat)
+    rasterio_show(satdata)
 
 
-def info(satdat):
+def distance_in_m(lat1, lon1, lat2, lon2):
     """
-        Display General Info about the satdat
+        Returns the distance in meters between two points in ESPG:4326
+    """
+
+    # constants
+    pi = 3.14159265358979
+    R_earth = 6378.137*1000
+
+    # compute
+    dLat = lat2 * pi / 180.0 - lat1 * pi / 180.0
+    dLon = lon2 * pi / 180.0 - lon1 * pi / 180.0
+    a = math.sin(dLat/2) * math.sin(dLat/2) + math.cos(lat1 * pi / 180.0) * math.cos(lat2 * pi / 180.0) * math.sin(dLon/2) * math.sin(dLon/2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    d = R_earth * c
+
+    return d
+
+
+def pixel_in_m(satdata):
+    """
+        Compute approximate distance represented by a pixel in meters
+    """
+
+    # parse crs
+    crs = satdata.meta['crs']
+    crs = str(crs).split(':')[-1]
+
+    # additional info if crs = 4326
+    if(crs == '4326'):
+
+        # compute approximate distance in meters
+        top_dist = distance_in_m(satdata.bounds.top, satdata.bounds.left, satdata.bounds.top, satdata.bounds.right)
+        bottom_dist = distance_in_m(satdata.bounds.bottom, satdata.bounds.left, satdata.bounds.bottom, satdata.bounds.right)
+        left_dist = distance_in_m(satdata.bounds.top, satdata.bounds.left, satdata.bounds.bottom, satdata.bounds.left)
+        right_dist = distance_in_m(satdata.bounds.top, satdata.bounds.right, satdata.bounds.bottom, satdata.bounds.right)
+
+        # average
+        ave_width = (top_dist + bottom_dist)/2.0
+        ave_height = (left_dist + right_dist)/2.0
+
+        # This dataset's projection uses meters as distance units.  What are the dimensions of a single pixel in meters?
+        xres = ave_width / satdata.width
+        yres = ave_height / satdata.height
+
+        # round
+        xres = round(xres*100.0)/100.0
+        yres = round(yres*100.0)/100.0
+
+        return [xres, yres]
+
+    return None
+
+
+def info(satdata):
+    """
+        Display General Info about the satdata
     """
 
     # check input
-    if(type(satdat) != rasterio.io.DatasetReader):
+    if(type(satdata) != rasterio.io.DatasetReader):
         raise Exception('Wrong Format')
 
     # dataset name
-    print(f'Dataset Name : {satdat.name}\n')
+    print(f'Dataset Name : {satdata.name}\n')
 
     # number of bands in this dataset
-    print(f'Number of Bands : {satdat.count}\n')
+    print(f'Number of Bands : {satdata.count}\n')
 
     # The dataset reports a band count.
-    print(f'Number of Bands according to dataset : {satdat.count}\n')
+    print(f'Number of Bands according to dataset : {satdata.count}\n')
 
     # And provides a sequence of band indexes.  These are one indexing, not zero indexing like Numpy arrays.
-    print(f'Bands indexes : {satdat.indexes}\n')
+    print(f'Bands indexes : {satdata.indexes}\n')
 
     # Minimum bounding box in projected units
-    print(f'Min Bounding Box : {satdat.bounds}\n')
+    print(f'Min Bounding Box : {satdata.bounds}\n')
 
     # Get dimensions, in map units
-    width_in_projected_units = abs(satdat.bounds.right - satdat.bounds.left)
-    height_in_projected_units = abs(satdat.bounds.top - satdat.bounds.bottom)
-    print(f"Width: {width_in_projected_units}, Height: {height_in_projected_units}\n")
+    width_in_projected_units = abs(satdata.bounds.right - satdata.bounds.left)
+    height_in_projected_units = abs(satdata.bounds.top - satdata.bounds.bottom)
+    print(f"Projected units (width, height) : ({width_in_projected_units}, {height_in_projected_units})\n")
 
     # Number of rows and columns.
-    print(f"Rows: {satdat.height}, Columns: {satdat.width}\n")
-
-    # This dataset's projection uses meters as distance units.  What are the dimensions of a single pixel in meters?
-    xres = width_in_projected_units / satdat.width
-    yres = height_in_projected_units / satdat.height
-    print(f'Width of pixel (in m) : {xres}')
-    print(f'Height of pixel (in m) : {yres}')
-    print(f"Are the pixels square: {xres == yres}\n")
+    print(f"Rows: {satdata.height}, Columns: {satdata.width}\n")
 
     # Get coordinate reference system
-    print(f'Coordinates System : {satdat.crs}\n')
+    print(f'Coordinates System : {satdata.crs}\n')
+
+    # compute pixel in meters
+    results = pixel_in_m(satdata)
+    if(results is not None):
+        xres, yres = results
+        print(f'Width of pixel (in m) : {xres}')
+        print(f'Height of pixel (in m) : {yres}')
+        print(f"Are the pixels square: {xres == yres}\n")
 
     # Convert pixel coordinates to world coordinates.
     # Upper left pixel
@@ -86,19 +142,19 @@ def info(satdat):
     col_min = 0
 
     # Lower right pixel.  Rows and columns are zero indexing.
-    row_max = satdat.height - 1
-    col_max = satdat.width - 1
+    row_max = satdata.height - 1
+    col_max = satdata.width - 1
 
     # Transform coordinates with the dataset's affine transformation.
-    topleft = satdat.transform * (row_min, col_min)
-    botright = satdat.transform * (row_max, col_max)
+    topleft = satdata.transform * (row_min, col_min)
+    botright = satdata.transform * (row_max, col_max)
 
     print(f"Top left corner coordinates: {topleft}")
     print(f"Bottom right corner coordinates: {botright}\n")
 
     # All of the metadata required to create an image of the same dimensions, datatype, format, etc. is stored in
     # the dataset's profile:
-    pp.pprint(satdat.profile)
+    pp.pprint(satdata.profile)
     print('\n')
 
 
@@ -120,13 +176,13 @@ def compress(src_path, out_path, compression_type='JPEG'):
     init_size = os.path.getsize(src_path)
 
     # load file
-    satdat = load(src_path)
+    satdata = load(src_path)
 
     # read all bands from source dataset into a single 3-dimensional ndarray
-    data = satdat.read()
+    data = satdata.read()
 
     # write new file using profile metadata from original dataset and specifying compression type
-    profile = satdat.profile
+    profile = satdata.profile
     profile['compress'] = compression_type
 
     with rasterio.open(out_path, 'w', **profile) as dst:
@@ -148,10 +204,10 @@ def to_uint8(src_path, out_path, min=0, max=10000):
     """
 
     # load file
-    satdat = load(src_path)
+    satdata = load(src_path)
 
     # read all bands from source dataset into a single ndarray
-    bands = satdat.read()
+    bands = satdata.read()
 
     def scale(band):
         if(np.max(band) > 255):
@@ -173,7 +229,7 @@ def to_uint8(src_path, out_path, min=0, max=10000):
     scaled_img = np.moveaxis(scaled_img,-1,0)
 
     # get the metadata of original GeoTIFF:
-    meta = satdat.meta
+    meta = satdata.meta
 
     # get the dtype
     m_dtype = scaled_img.dtype
@@ -353,26 +409,26 @@ def point_to_GeoJSON(point_geometry, point_crs, out_path=None):
     return geojson
 
 
-def convert_lng_lat_to_pixel(satdat, lng, lat):
+def convert_lng_lat_to_pixel(satdata, lng, lat):
     """
         Maps a (lng, lat) point to a pixel (x, y) point
     """
 
     # check if inside
-    if(lng > satdat.bounds.right or lng < satdat.bounds.left):
+    if(lng > satdata.bounds.right or lng < satdata.bounds.left):
         raise Exception('Invalid lat/lng')
-    if(lat > satdat.bounds.top or lat < satdat.bounds.bottom):
+    if(lat > satdata.bounds.top or lat < satdata.bounds.bottom):
         raise Exception('Invalid lat/lng')
 
     # Get dimensions, in map units
-    width_in_projected_units = np.abs(satdat.bounds.right - satdat.bounds.left)
-    height_in_projected_units = np.abs(satdat.bounds.top - satdat.bounds.bottom)
+    width_in_projected_units = np.abs(satdata.bounds.right - satdata.bounds.left)
+    height_in_projected_units = np.abs(satdata.bounds.top - satdata.bounds.bottom)
 
     # compute
-    xres = satdat.width/float(width_in_projected_units)
-    yres = satdat.height/float(height_in_projected_units)
-    xpos = (satdat.bounds.right-lng)*xres
-    ypos = (satdat.bounds.top-lat)*yres
+    xres = satdata.width/float(width_in_projected_units)
+    yres = satdata.height/float(height_in_projected_units)
+    xpos = (satdata.bounds.right-lng)*xres
+    ypos = (satdata.bounds.top-lat)*yres
 
     # round
     xpos = int(xpos)
@@ -381,13 +437,21 @@ def convert_lng_lat_to_pixel(satdat, lng, lat):
     return xpos, ypos
 
 
-def crop(src_path, out_path, bbox_geometry, bbox_crs):
+def pixel_pos_to_lng_lat(satdata, x_pos, y_pos):
+    """
+        Given a pixel position return the lng/lat position
+    """
+
+    # Transform coordinates with the dataset's affine transformation.
+    lng, lat = satdata.transform * (y_pos, x_pos)
+
+    return lng, lat
+
+
+def crop(src_path, out_path, aoi, bbox_crs):
     """
         Crop imagery using a Postgis Box2d geometry
     """
-
-    # validate area of interest
-
 
     # load imagery
     satdata = rasterio.open(src_path)
@@ -400,12 +464,12 @@ def crop(src_path, out_path, bbox_geometry, bbox_crs):
     if(crs != bbox_crs):
         raise Exception(f'Imagery & bounding box crs mismatch ({crs}, {bbox_crs})')
 
-    # apply mask with crop=True to crop the resulting raster to the AOI's bounding box
-    clipped, transform = mask(satdata, aoi, crop=True)
-
     # Using a copy of the metadata from our original raster dataset, we can write a new geoTIFF
     # containing the new, clipped raster data:
     meta = satdata.meta.copy()
+
+    # apply mask with crop=True to crop the resulting raster to the AOI's bounding box
+    clipped, transform = mask(satdata, aoi, crop=True)
 
     # update metadata with new, clipped mosaic's boundaries
     meta.update(
@@ -421,7 +485,7 @@ def crop(src_path, out_path, bbox_geometry, bbox_crs):
         dst.write(clipped)
 
 
-def reproject(src_path, out_path, target_crs='EPSG:4326'):
+def reproject(src_path, out_path, target_crs='4326'):
     """
         Reprojects the imagery to a new coordinate system
 
@@ -443,7 +507,7 @@ def reproject(src_path, out_path, target_crs='EPSG:4326'):
 
     # calculate a transform and new dimensions using our dataset's current CRS and dimensions
     transform, width, height = calculate_default_transform(satdata.crs,
-                                                        target_crs,
+                                                        f'EPSG:{target_crs}',
                                                         satdata.width,
                                                         satdata.height,
                                                         *satdata.bounds)
@@ -453,7 +517,7 @@ def reproject(src_path, out_path, target_crs='EPSG:4326'):
     metadata = satdata.meta.copy()
 
     # Change the CRS, transform, and dimensions in metadata to match our desired output dataset
-    metadata.update({'crs':target_crs,
+    metadata.update({'crs':f'EPSG:{target_crs}',
                     'transform':transform,
                     'width':width,
                     'height':height})
@@ -467,5 +531,5 @@ def reproject(src_path, out_path, target_crs='EPSG:4326'):
                 src_transform=satdata.transform,
                 src_crs=satdata.crs,
                 dst_transform=transform,
-                dst_crs=target_crs
+                dst_crs=f'EPSG:{target_crs}'
             )
