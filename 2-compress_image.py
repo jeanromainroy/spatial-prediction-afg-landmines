@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 # Lib to work with .tif
 import imagery_helper
@@ -13,10 +14,10 @@ data_dir_path = os.path.join(path, 'Data')
 
 
 # Path to our imagery
-src_path = "/home/jean-romain/Geospatial/30cm_imagery/afghanistan.tif"
+src_path = "/home/jean-romain/Geospatial/30cm_imagery/afghanistan-small.tif"
 
-# path to compressed
-out_path = 'compressed.tif'
+# path to output image
+out_path = 'processed.tif'
 
 # load
 satdat = imagery_helper.load(src_path)
@@ -24,7 +25,10 @@ satdat = imagery_helper.load(src_path)
 # display info
 imagery_helper.info(satdat)
 
+# scale to uint8
+imagery_helper.scale_pixels(src_path, out_path, min=0, max=10000)
+
 # compress
-imagery_helper.compress(src_path, out_path, compression_type='JPEG')
+imagery_helper.compress(out_path, out_path, compression_type='JPEG')
 
 print(f'Compression done, file can be found {out_path}')

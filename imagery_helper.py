@@ -1,7 +1,10 @@
 import os
 import json
+
 from matplotlib import pyplot as plt
 from humanize import naturalsize as sz
+
+import numpy as np
 
 # import rasterio's tools
 import rasterio
@@ -137,6 +140,52 @@ def compress(src_path, out_path, compression_type='JPEG'):
 
     # output a human-friendly size
     print(f'(Initial size, Final Size, Ratio) : ({sz(init_size)}, {sz(final_size)}, {ratio}%)\n')
+
+
+def scale_pixels(src_path, out_path, min=0, max=10000):
+
+    # load file
+    satdat = load(src_path)
+
+    # read all bands from source dataset into a single ndarray
+    bands = satdat.read()
+
+    def scale(band):
+        band = np.round((band / 10000.0)*255.0)     # scale to 0 - 255
+        band[band > 255] = 255                      # if above set to max
+        return band
+
+    # scale each band
+    for i, band in enumerate(bands):
+        bands[i] = scale(band).astype(np.uint8)
+
+    # get count
+    count = len(bands)
+
+    # stack
+    scaled_img = np.dstack(bands).astype(np.uint8)
+
+    # move axis with 4 entries to beginning and remove extra dimension
+    scaled_img = np.moveaxis(scaled_img,-1,0)
+
+    # get the metadata of original GeoTIFF:
+    meta = satdat.meta
+
+    # get the dtype
+    m_dtype = scaled_img.dtype
+
+    # set the source metadata as kwargs we'll use to write the new data:
+    kwargs = meta
+
+    # update the 'dtype' value to match our NDVI array's dtype:
+    kwargs.update(dtype=m_dtype)
+
+    # update the 'count' value since our output will no longer be a 4-band image:
+    kwargs.update(count=count)
+
+    # Finally, use rasterio to write new raster file 'data/ndvi.tif':
+    with rasterio.open(out_path, 'w', **kwargs) as dst:
+            dst.write(scaled_img)
 
 
 def bbox_to_corners(bbox_geometry):
